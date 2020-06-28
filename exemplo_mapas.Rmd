@@ -1,0 +1,156 @@
+---
+title: "Mapas no R"
+author: "Beatriz e Fausto"
+date: "`r format(Sys.time(), '%d/%m/%y')`"
+output: 
+  html_document:
+    toc: true
+    toc_float: 
+      collapsed: false
+      smooth_scroll: false
+    number_sections: false  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, error = FALSE)
+```
+
+## R Markdown
+
+Pacotes
+```{r}
+library(rgdal)
+library(sf)
+library(leaflet)
+library(plotly)
+library(ggplot2)
+library(dplyr)
+library(stringr)
+library(tictoc)
+```
+
+
+Shape files
+```{r}
+municipios_shp <- st_read(dsn = "./Data/rj_municipios", layer = "RJ_MUNICIPIOS_2017_CENSOAGRO") #municípios do estado do RJ
+bairros_shp <- st_read(dsn = "./Data/Limite_de_Bairros-shp", layer ="Limite_de_Bairros")#bairros do município do RJ
+limite_muni <- read_sf('./Data/Limite_do_Municipio_do_Rio_de_Janeiro-shp/Limite_do_Municipio_do_Rio_de_Janeiro-shp.shp') #limite do município do RJ
+limite_uf <- read_sf('./Data/RJ/33UFE250GC_SIR.shp') #limite do estado do RJ
+```
+
+# sf
+
+Mapa dos municípios do Rio de Janeiro
+```{r}
+tic()
+ggplot() + 
+  geom_sf(data = municipios_shp, colour = "dark blue", fill = NA) + 
+  geom_sf(data = limite_uf, colour = "dark blue", fill = NA, lwd = 1) + 
+  theme_void() +
+  ggtitle("Mapa do estado do Rio de Janeiro")
+toc()  
+```
+
+
+Mapa dos bairros do Rio de Janeiro
+```{r}
+tic()
+ggplot() + 
+  geom_sf(data = bairros_shp, colour = "dark blue", fill = NA) +
+  geom_sf(data = limite_muni, colour = "dark blue", fill = NA, lwd = 1) +
+  theme_void() +
+  ggtitle("Mapa do município do Rio de Janeiro")
+toc()
+```
+
+
+
+Gerandos dados aleatórios
+```{r}
+dados_bairros <- data.frame(NOME = bairros_shp$NOME, Valor = round(rgamma(dim(bairros_shp)[1], shape = 2, rate = 0.5),2))
+dados_municipios <- data.frame(NM_MUN = municipios_shp$NM_MUN, Valor = round(rgamma(dim(municipios_shp)[1], shape = 7.5, rate = 1),2))
+```
+
+
+Plotando os mapas com os dados gerados
+```{r}
+theme_map <-  function(){theme(
+    panel.ontop = TRUE,   
+    panel.grid = element_blank(), 
+    line = element_blank(), 
+    rect = element_blank(), 
+    text = element_blank(), 
+    plot.background = element_blank())}
+```
+
+
+
+```{r}
+tic()
+ggplotly(municipios_shp %>% 
+  left_join(dados_municipios, by = "NM_MUN") %>% 
+  ggplot() +
+    geom_sf(aes(text=paste('</br>Município: ', str_to_title(NM_MUN)), fill = Valor), color="dark blue", show.legend = FALSE) +
+  geom_sf(data = limite_uf, colour = "dark blue", fill = NA, lwd = 1) +
+      theme_map() +
+       ggtitle("Mapa dos municípios do Rio de Janeiro"))
+toc()
+```
+
+
+```{r}
+tic()
+ggplotly(bairros_shp %>%
+  left_join(dados_bairros, by = "NOME") %>% 
+  ggplot() + 
+    geom_sf(aes(text=paste('</br>Bairro: ', NOME), fill = Valor), colour = "dark blue", show.legend = FALSE) +
+  geom_sf(data = limite_muni, colour = "dark blue", fill = NA, lwd = 1) +
+      theme_map() +
+        ggtitle("Mapa dos bairros do Rio de Janeiro")) 
+toc()
+```
+
+
+# leaflet
+
+
+Transformando o tipo de coordenada para EPSG
+
+```{r}
+shapeData_muni <- st_transform(municipios_shp, 4326)
+shapeData_bairro <- st_transform(bairros_shp, 4326)
+```
+
+
+Mapa dos municípios do Rio de Janeiro
+```{r}
+tic()
+mapa = shapeData_muni %>% 
+  left_join(dados_municipios, by = "NM_MUN") %>% 
+    leaflet() %>% 
+      addProviderTiles(providers$OpenStreetMap)
+
+mapa_malha = mapa %>%
+       addPolygons(weight = 1, opacity = 1, color = "darkblue", fillColor = "blue", label = ~str_to_title(NM_MUN), popup = paste0("<b>Cidade: </b>", str_to_title(dados_municipios$NM_MUN),"<br>",
+                   "<b>Valor: </b>", dados_municipios$Valor))
+
+mapa_malha
+toc()
+```
+
+Mapas dos bairros do Rio de Janeiro
+
+```{r}
+tic()
+mapa = shapeData_bairro %>% 
+  left_join(dados_bairros, by = "NOME") %>% 
+    leaflet() %>% 
+      addProviderTiles(providers$OpenStreetMap)
+
+mapa_malha = mapa %>%
+       addPolygons(weight = 1, opacity = 1, color = "darkblue", fillColor = "blue", label = ~str_to_title(NOME), popup = paste0("<b>Cidade: </b>", str_to_title(dados_bairros$NOME),"<br>",
+                   "<b>Valor: </b>", dados_bairros$Valor))
+
+mapa_malha
+toc()
+```
