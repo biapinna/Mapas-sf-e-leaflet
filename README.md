@@ -1,3 +1,3 @@
-# REDCovid19
+# Mapas: sf e leaflet
 
-Alguns códigos para usar no site
+Código em R de mapas para o Rio de Janeiro.
