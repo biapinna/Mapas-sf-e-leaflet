@@ -1,5 +1,5 @@
 ---
-title: "Mapas no R"
+title: "Mapas no R - Rio de Janeiro"
 author: "Beatriz e Fausto"
 date: "`r format(Sys.time(), '%d/%m/%y')`"
 output: 
@@ -30,7 +30,17 @@ library(tictoc)
 ```
 
 
+
 Shape files
+
+* [link shape file municípios](ftp://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/)
+
+* [link shape file bairros](http://www.data.rio/datasets/limite-de-bairros)
+
+* [link shape file limite do estado](http://www.data.rio/datasets/limite-do-munic%C3%ADpio-do-rio-de-janeiro)
+
+* [link shape file limite de favelas](http://www.data.rio/datasets/limite-favelas)
+
 ```{r}
 municipios_shp <- st_read(dsn = "./Data/rj_municipios", layer = "RJ_MUNICIPIOS_2017_CENSOAGRO") #municípios do estado do RJ
 bairros_shp <- st_read(dsn = "./Data/Limite_de_Bairros-shp", layer ="Limite_de_Bairros")#bairros do município do RJ
@@ -154,3 +164,5 @@ mapa_malha = mapa %>%
 mapa_malha
 toc()
 ```
+
+
